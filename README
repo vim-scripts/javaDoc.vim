@@ -1,0 +1,40 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=801
+
+Hi All,
+This script looks up javaDoc HTML help files for J2SE and J2EE api classes.
+First of all I am not sure if there is already a utility to do this or not, so here is my version.
+
+About the script.
+First the script runs only on Unix boxes, Windows users are more that welcome to port it .
+Make sure that the following unix commands are present in directories mentioned in your $PATH variable.
+dirname,grep,xlswin,awk
+It also uses a shell script provided along with this package.
+It is heavily commented and can be easily modified.
+
+What it does and what it doesn't
+It opens javaDoc HTML file in an external browser from VIM.
+It can open the HTML in either Netscape (Netscape 4.x, 6,7.x, Mozilla , Firebird ) or
+a text browser such as lynx or links. Personally I prefer to open help in netscape when I am using gvim and in a text browser when I am using vim.
+Currently It only supports looking up classes and not methods , or members.
+
+How it works.
+It opens javaDoc HTML file in an external browser from VIM.
+It can open the HTML in either Netscape (Netscape 4.x, 6,7.x, Mozilla , Firebird ) or
+a text browser such as lynx or links.
+Personally I prefer to open help in netscape when I am using gvim
+and in a text browser when I am using vim.
+Currently It only supports looking up classes and not methods , or members.
+
+How it works.
+You have two ways to lookup help
+1)
+To use the mapping <Leader>jh, the cursor has to be placed on the class name
+whose help file is to be looked up. i.e.
+if your source is "Connection conn = null;"
+The cursor will have to be on the word Connection.
+The script can't do a reverse mapping of variable name to class name and look-up help. i.e.
+you can't use the variable conn to look up help for connection.
+
+2)Use the :Javadoc command and supply the Class name as an argument.
+i.e. :Javadoc Connection
+
