@@ -1,20 +1,37 @@
-" javaDoc : A VIM plugin to open Javadoc help in a web-browser.
-" Author Bhaskar V. Karambelkar
-" Version 1
+" javadoc : A VIM plugin to open Javadoc help in a web-browser.
+" Last Changed: 2003 Oct 28
+" Maintainer: Bhaskar V. Karambelkar <vim_power@yahoo.com>
+" License:	This file is placed in the public domain.
 "
-" The file is heavily commented for anyone reading it for better
-" understanding.
+" The file is heavily commented for the benefit of anyone reading it.
 "
 " History
 " v1	Initial Release.
+" v2	Changed as per guidelines for writing global plugins.
+
+if exists("loaded_javadoc")
+ finish
+endif
+let loaded_javadoc = 1
+
+let s:save_cpo = &cpo
+set cpo&vim
+
+if !hasmapto('<Plug>JavadocJhelp')
+  map <unique> <Leader>jh  <Plug>JavadocJhelp
+endif
+
+noremap <unique> <script> <Plug>JavadocJhelp  <SID>Jhelp
+noremenu <script> Plugin.Jhelp      <SID>Jhelp
+noremap <SID>Jhelp  :call <SID>Jhelp(expand("<cword>"))<CR>
+
+if !exists(":Javadoc")
+  command -nargs=1  Javadoc  :call s:Jhelp(<q-args>)
+endif
 
 " This is the main function. The cursor should be placed on the ClassName
 " whose JavaDoc is to be opened.
-" You can map a specific key-sequence for execution of this function.
-" e.g. put
-" map <F5> :call SearchForJHelp()<CR> 
-" In your .vimrc file.
-function! SearchForJHelp()
+function! s:Jhelp(classname)
 
 	"This local variable acts as a counter for the number of ID Files.
 	let l_no_of_ID_Files = 0
@@ -48,7 +65,7 @@ function! SearchForJHelp()
 			"variables g:javadoc_ID_File_1 and g:javadoc_ID_File_2 each
 			"pointing to a different ID file.
 			if exists("g:javadoc_ID_File_".l_no_of_ID_Files)
-				"exec "echo g:javadoc_ID_File_". l_no_of_ID_Files
+				"exec "echo DEBUG-- g:javadoc_ID_File_". l_no_of_ID_Files
 
 				"Assign the current ID file Name to a temp variable.
 				exec "let l_temp_file = g:javadoc_ID_File_" . l_no_of_ID_Files
@@ -59,7 +76,7 @@ function! SearchForJHelp()
 					
 					" Search for javaDoc HTML of the desired Class in the ID
 					" file and append the returned value.
-					let l_file_list = l_file_list . GetJavaClassHTMLFile(l_temp_file)
+					let l_file_list = l_file_list . s:GetJavaClassHTMLFile(l_temp_file,a:classname)
 					"echo " DEBUG-- l_file_list = " . l_file_list
 				endif
 
@@ -70,11 +87,11 @@ function! SearchForJHelp()
 		endw
 	
 		"remove unwanted whitespaces at the end.
-		let l_file_list = TrimString(l_file_list)
+		let l_file_list = s:TrimString(l_file_list)
 
 		if l_file_list != ""
 			"Open the help files.
-			call OpenMultipleFiles(l_file_list)
+			call s:OpenMultipleFiles(l_file_list)
 			"redraw the screen after the user closes help.
 			redraw!
 		endif
@@ -85,11 +102,11 @@ endf
 "a ID file. The return value is a string with space seperated list of the
 "matching HTML files. The function takes care of classes defined in multiple
 "packages.
-function! GetJavaClassHTMLFile(id_file)
+function! s:GetJavaClassHTMLFile(id_file,classname)
 
 	"The javaDoc HTML filename of a Class is ClassName.html ie
 	"BufferedReader.html etc.
-	let l_fileName =  expand("<cword>") . ".html"
+	let l_fileName =   a:classname . ".html"
 	"echo " DEBUG-- l_fileName = " . l_fileName
 	
 	" Find the directory name of the ID file.
@@ -102,8 +119,8 @@ function! GetJavaClassHTMLFile(id_file)
 
 	"Remove any unprintable characters that system command may have returned
 	"such as ASCLL NULL, Newline , Formfeed etc.
-	let l_JavaHelp = RemoveNewLine(l_JavaHelp)
-	let l_JavaHelp = TrimString(l_JavaHelp)
+	let l_JavaHelp = s:RemoveNewLine(l_JavaHelp)
+	let l_JavaHelp = s:TrimString(l_JavaHelp)
 
 	"echo "DEBUG-- After trim l_JavaHelp = #" . l_JavaHelp . "#"
 
@@ -114,7 +131,7 @@ function! GetJavaClassHTMLFile(id_file)
 	endif
 endf
 
-function! RemoveNewLine(input)
+function! s:RemoveNewLine(input)
 	"Convert any non printable characters from the string to white spaces.
 	let output= substitute(a:input,"[^[:graph:]]"," ","g")
 	" Remove extra white spaces at the end of the string.
@@ -123,7 +140,7 @@ function! RemoveNewLine(input)
 endf
 
 
-function! TrimString(input)
+function! s:TrimString(input)
 	let output= substitute(a:input,"^[^[:graph:]]*","","")
 	let output= substitute(output,"[^[:graph:]]*$","","")
 	return output
@@ -135,7 +152,7 @@ endf
 "Also for files such as java.naming.Context which are found in both J2EE and
 "J2SDK documents the function will give two options.
 "l_JavaHelp is a space seperated list of multiple files.
-function! OpenMultipleFiles(l_JavaHelp)
+function! s:OpenMultipleFiles(l_JavaHelp)
 	"echo "DEBUG-- l_JavaHelp = " a:l_JavaHelp
 	
 	"local counter
@@ -187,40 +204,38 @@ function! OpenMultipleFiles(l_JavaHelp)
 
 	"If only One file is found then Open it.
 	if l_cnt == 1
-		call OpenInBrowser(l_File_1)
+		call s:OpenInBrowser(l_File_1)
 	" else if more than One files are found present Options to user and Open
 	" the file selected.
 	else
-		let l_conf_Msg = TrimString(l_conf_Msg) 
+		let l_conf_Msg = s:TrimString(l_conf_Msg) 
 		if l_conf_Msg != ""
 			"echo "DEBUG-- l_conf_Msg = " . l_conf_Msg
 			let l_choice = confirm("Choose for one of the below Files :\n",l_conf_Msg,"1")
 			if l_choice > 0 && l_choice <= l_cnt
 				exec "let l_tmp_FileName = l_File_" . l_choice
 				echo " l_tmp_FileName = " . l_tmp_FileName
-				call OpenInBrowser(l_tmp_FileName)
+				call s:OpenInBrowser(l_tmp_FileName)
 			endif
 		endif
 	endif
 endf
 
-"Opens the URL in either NETSCAPE if g:open_IN_Netscape is set else
-"opens in links.
+"Opens the URL in either NETSCAPE if g:jhelp_use_gui_browser is set else
+"opens in a Text Browser.
 "This function can be easyly extended to accomodate other GUI browsers
 "such as mozilla or text-based browsers such as lynx or elinks etc.
-function! OpenInBrowser(URL)
-	if exists('g:open_IN_Netscape')
-		call OpenInNetscape(a:URL)
+function! s:OpenInBrowser(URL)
+	if exists('g:jhelp_use_gui_browser')
+		call s:OpenInNetscape(a:URL)
 	else
-		call OpenInLinks(a:URL)
+		call s:OpenInTextBrowser(a:URL)
 	endif
 endf
 
 "This function opens the given URL in Netscape.
-function! OpenInNetscape(URL)
-	"echo "1 = " 
-	let URL = GetFullPathName(a:URL)
-	echo "URL = " . URL
+function! s:OpenInNetscape(URL)
+	"echo "URL = " . a:URL 
 	
 	"Check if this function has already been run at least once and that
 	"g:Netscape_Instance_ID has been determined. The variable
@@ -230,11 +245,11 @@ function! OpenInNetscape(URL)
 		let l_tmpID = g:Netscape_Instance_ID
 		"Open the javaDoc URL in the same window as used before. and redirect
 		"the stdout and stderr to a temp file.
-		exec "silent !netscape  -remote 'openURL(file://" . URL . ")'  >&/tmp/vimNets123"
+		exec "silent !". g:javadoc_netscape_cmd ."  -remote 'openURL(file://" . a:URL . ")'  >&/tmp/vimNets123"
 		"Check for some typical errors.
-		let l_err_0 = TrimString(system("grep -i BadWindow /tmp/vimNets123"))
-		let l_err_1 = TrimString(system("grep -i \"no such window\" /tmp/vimNets123"))
-		let l_err_2 = TrimString(system("grep -i invalid /tmp/vimNets123"))
+		let l_err_0 = s:TrimString(system("grep -i BadWindow /tmp/vimNets123"))
+		let l_err_1 = s:TrimString(system("grep -i \"no such window\" /tmp/vimNets123"))
+		let l_err_2 = s:TrimString(system("grep -i invalid /tmp/vimNets123"))
 		"If any errors then unlet the instance ID so that we can open the URL
 		"in a new window.
 		if l_err_0 != "" || l_err_1 != 0 || l_err_2 != ""
@@ -242,13 +257,13 @@ function! OpenInNetscape(URL)
 			"Call the same function again. except this time since
 			"g:Netscape_Instance_ID is unlet, a new Netscape window will be
 			"opened.
-			call OpenInNetscape(URL)
+			call s:OpenInNetscape(a:URL)
 		endif
 	else
 		"else if no previous window was showing javaDoc, then open a new one.
-		exec "silent !netscape -remote 'openURL(file://" . URL . ", new-window)' >&/tmp/vimNets123"
+		exec "silent !" . g:javadoc_netscape_cmd . " -remote 'openURL(file://" . a:URL . ", new-window)' >&/tmp/vimNets123"
 		" If error, see if netscape was running or Not.
-		let l_err = TrimString(system("grep \"not running\" /tmp/vimNets123"))
+		let l_err = s:TrimString(system("grep \"not running\" /tmp/vimNets123"))
 		if l_err != ""
 			echo "l_err = #" . l_err . "#"
 			echo "Error while Running Netscape : Probable Cause Netscape Not Running "
@@ -262,7 +277,7 @@ function! OpenInNetscape(URL)
 		"produces a different Title then the grep command has to search for
 		"all possible titles of diff. JavaDocs.
 		 let g:Netscape_Instance_ID = system("xlswins -l | grep \"Java 2 Platform SE \" | sed -e 's/[   ][      ]*/ /g' | cut -d \" \" -f2")
-		let g:Netscape_Instance_ID = TrimString(g:Netscape_Instance_ID)
+		let g:Netscape_Instance_ID = s:TrimString(g:Netscape_Instance_ID)
 		"echo "#" g:Netscape_Instance_ID "#"
 
 		"IF no window is found, search for another pattern of window title
@@ -270,7 +285,7 @@ function! OpenInNetscape(URL)
 		"javadocs generated using the javadoc command.
 		if g:Netscape_Instance_ID == ""
 		   let g:Netscape_Instance_ID = system("xlswins -l | grep \"Generated Documentation \" | sed -e 's/  */ /g' | cut -d \" \" -f2")
-		   let g:Netscape_Instance_ID = TrimString(g:Netscape_Instance_ID)
+		   let g:Netscape_Instance_ID = s:TrimString(g:Netscape_Instance_ID)
 		   if g:Netscape_Instance_ID == ""
 			 unlet g:Netscape_Instance_ID
 		   endif
@@ -279,7 +294,8 @@ function! OpenInNetscape(URL)
 	exec "silent !rm -rf /tmp/vimNets123"
 endf
 
-function! OpenInLinks(URL)
-	exec "silent !links " . a:URL
+function! s:OpenInTextBrowser(URL)
+	exec "silent !" . g:javadoc_textbrowser_cmd . " " . a:URL
 endf
 
+let &cpo = s:save_cpo
